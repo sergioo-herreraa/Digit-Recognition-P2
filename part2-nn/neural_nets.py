@@ -54,43 +54,52 @@ class NeuralNetwork():
         self.epochs_to_train = 10
         self.training_points = [((2,1), 10), ((3,3), 21), ((4,5), 32), ((6, 6), 42)]
         self.testing_points = [(1,1), (2,2), (3,3), (5,5), (10,10)]
-
+     
     def train(self, x1, x2, y):
 
         ### Forward propagation ###
         input_values = np.matrix([[x1],[x2]]) # 2 by 1
 
         # Calculate the input and activation of the hidden layer
-        hidden_layer_weighted_input = # TODO (3 by 1 matrix)
-        hidden_layer_activation = # TODO (3 by 1 matrix)
-
-        output =  # TODO
-        activated_output = # TODO
+        hidden_layer_weighted_input =  np.dot(self.input_to_hidden_weights,input_values) + self.biases # TODO (3 by 1 matrix) #calcula la multiplicación del vector de valores de entrada con la matriz de ponderaciones desde la capa de entrada a la capa oculta
+        hidden_layer_activation = np.vectorize(rectified_linear_unit)(hidden_layer_weighted_input) # TODO (3 by 1 matrix) #los resultados obtenidos, los usa como inputs en la función de activación; esta función únicamente maneja escalares, por lo que se usa "vectorize" para que la función se aplique a cada uno de los valores en el vector de inputs obtenido con la línea previa
+        
+        
+        output =  np.inner(self.hidden_to_output_weights,hidden_layer_activation.T) #obtiene el resultado de multiplicar el vector con los valores de las funciones de activación aplicadas a la capa oculta, por el vector (o matriz, si se tuvieran 2 neuronas en la capa de salida) con las ponderaciones desde la capa oculta a la capa de salida
+        activated_output = output_layer_activation(output) #El resultado lo mete en la función de activación de la neurona de salida. En este caso, como nuestro output es escalar debido a que solo tenemos 1 neurona en la capa de salida, no es necesario vectorizar
 
         ### Backpropagation ###
 
-        # Compute gradients
-        output_layer_error = # TODO
-        hidden_layer_error = # TODO (3 by 1 matrix)
+        # Compute gradient
+        output_layer_error= -1*(y-activated_output)*output_layer_activation_derivative(output) #De las ecuaciones obtenidas en el documento de word para este proyecto, esta línea obtiene el error numérico de la capa de salida
+        hidden_layer_error = np.multiply(self.hidden_to_output_weights.T*output_layer_error,np.vectorize(rectified_linear_unit_derivative)(hidden_layer_weighted_input)) # TODO (3 by 1 matrix)  de las ecuaciones obtenidas en el documento de word, esta línea obtiene el error numérico de la capa de entrada. Esto lo logra multiplicando 2 factores:
+                                                                                                                                                                            # el primero es el factor self.hidden_to_output_weights.T*output_layer_error, que corresponde a la multiplicación de las ponderaciones de la capa oculta a la capa de salida, por el error de la capa oculta
+                                                                                                                                                                            # el segundo factor, es el de np.vectorize(rectified_linear_unit_derivative)(hidden_layer_weighted_input), el cual evalúa la derivada de la función de activación ReLU en cada valor del vector correspondiente a los inputs para las funciones de activación de la capa oculta (los valores de z, en el diagrama del documento)
+                                                                                                                                                                            # esta es una multiplicación element-wise, por lo que es conveniente usar "multiply"                                                                                                                                                                                                               #                                                                                                                                                                    
 
-        bias_gradients = # TODO
-        hidden_to_output_weight_gradients = # TODO
-        input_to_hidden_weight_gradients = # TODO
+        bias_gradients = hidden_layer_error # TODO #de las ecuaciones obtenidas, se puede ver que el gradiente del bias aplicado a los inputs de las funciones de activación en la capa oculta, es de hecho igual al error de las neuronas en la capa oculta
+        hidden_to_output_weight_gradients = np.multiply(hidden_layer_activation.T,output_layer_error)# TODO #De las ecuaciones obtenidas, se puede ver que el gradiente para las ponderaciones de la capa oculta a la de salida, es la multiplicación del error de la capa oculta por el vector con el resultado de las funciones de activación de las neuronas en la capa oculta; la transposición se hace porque el vector con este resultado es un vector columna, y en la inicialización, lo tienen como un vector fila
+        input_to_hidden_weight_gradients = np.multiply(np.multiply(np.ones((3,2)),np.transpose(input_values)),hidden_layer_error) #De las ecuaciones obtenidas, se puede ver que el gradiente para las ponderaciones de la capa de entrada a la capa oculta, está dado, en primer lugar, por una matriz 3x2. Para esta matriz, la primera columna está multiplicada por la primera componente del vector de inputs, mientras que la segunda columna está multiplicada por la segunda componente.
+                                                                                                                                  #posteriormente, para la matriz resultante, las componentes de la primera (y segunda) columna de la matriz, se multiplican por el error de las neuronas en la capa oculta (un vector columna).
+        # Use gradients to adjust weights and biases using gradient descent.
+        #Finalmente, se actualizan los valores correspondientes a las ponderaciones y biases
+        self.biases = self.biases - self.learning_rate*bias_gradients # TODO
+        self.input_to_hidden_weights = self.input_to_hidden_weights - self.learning_rate*input_to_hidden_weight_gradients# TODO
+        self.hidden_to_output_weights = self.hidden_to_output_weights - self.learning_rate*hidden_to_output_weight_gradients # TODO
 
-        # Use gradients to adjust weights and biases using gradient descent
-        self.biases = # TODO
-        self.input_to_hidden_weights = # TODO
-        self.hidden_to_output_weights = # TODO
 
     def predict(self, x1, x2):
 
         input_values = np.matrix([[x1],[x2]])
 
         # Compute output for a single input(should be same as the forward propagation in training)
-        hidden_layer_weighted_input = # TODO
-        hidden_layer_activation = # TODO
-        output = # TODO
-        activated_output = # TODO
+        hidden_layer_weighted_input =  np.dot(self.input_to_hidden_weights,input_values) + self.biases # TODO (3 by 1 matrix) #calcula la multiplicación del vector de valores de entrada con la matriz de ponderaciones desde la capa de entrada a la capa oculta
+        hidden_layer_activation = np.vectorize(rectified_linear_unit)(hidden_layer_weighted_input) # TODO (3 by 1 matrix) #los resultados obtenidos, los usa como inputs en la función de activación; esta función únicamente maneja escalares, por lo que se usa "vectorize" para que la función se aplique a cada uno de los valores en el vector de inputs obtenido con la línea previa
+        
+        
+        output =  np.inner(self.hidden_to_output_weights,hidden_layer_activation.T) #obtiene el resultado de multiplicar el vector con los valores de las funciones de activación aplicadas a la capa oculta, por el vector (o matriz, si se tuvieran 2 neuronas en la capa de salida) con las ponderaciones desde la capa oculta a la capa de salida
+        activated_output = output_layer_activation(output) #El resultado lo mete en la función de activación de la neurona de salida. En este caso, como nuestro output es escalar debido a que solo tenemos 1 neurona en la capa de salida, no es necesario vectorizar
+
 
         return activated_output.item()
 
