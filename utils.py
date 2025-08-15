@@ -47,7 +47,7 @@ def read_pickle_data(file_name):
     f.close()
     return data
 
-def get_MNIST_data():
+def get_MNIST_data(path='../Datasets/mnist.pkl.gz'):
     """
     Reads mnist dataset from file
 
